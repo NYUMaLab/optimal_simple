@@ -10,7 +10,7 @@ classdef plots
         dirs_save = '/users/shanshen/Dropbox/Shan_VR/Optimality/Results and figures/fake data/model similarity analysis/';
         dirs_save2 = '/users/shanshen/Dropbox/Shan_VR/Optimality/Results and figures/real data/2_sessions/';
         dirs_save3 = '/users/shanshen/Dropbox/Shan_VR/Optimality/Results and figures/real data/3_sessions/';
-        dirs_save4 = '/Users/shanshen/Google Drive/Shan Optimality/Manuscripts/201507 Psychological Review Revision/separated figures_full version/';
+        dirs_save4 = '/Users/shanshen/Google Drive/Shan Optimality/Manuscripts/201507 Psychological Review Revision/separated figures_full version/raw figures/';
     end
     methods(Static)
         %% the following functions plot the results of model comparison
@@ -1515,14 +1515,21 @@ classdef plots
 %             ylim([-1300,-900]);
 %             xlabel('Model agreement relative to optimal model');
 %             ylabel('Model log likelihood');
-            fig.cleanup; fig.save([plots.dirs_save2 'bmc_agreement.eps']);
+            fig.cleanup; fig.save([plots.dirs_save4 'bmc_agreement.eps']);
             
         end
-        function bmc_agreement_all(subj_idx,sz,tosave)
+        function bmc_agreement_all(subj_group_id,sz,tosave)
             
             % plot mean bmc across subjects for a model as a function of
             % agreement to each model, compute R^2 of linear regression
             % SS 2015-07-15
+            if subj_group_id == 1 % task with correctness feedback
+                subj_idx = 1:9;
+            elseif subj_group_id == 2 % task without correctness feedback
+                subj_idx = 10:14;
+            else
+                error('Invalid input for subject group id, please enter 1 or 2, 1 is with feedback, 2 is not:')
+            end
             
             if ~exist('sz','var')
                 sz = [200,175];
@@ -1556,7 +1563,7 @@ classdef plots
                 r = pearson_r(1,2);
                 % save rsq as global maximum index
                 dirname = compute.model_names{model_idx(ii)};
-                save_dir = ['similarity/' dirname '_rsq_real_opt'];
+                save_dir = ['similarity/' dirname '_rsq_real_opt_group' num2str(subj_group_id)];
                 
                 save(save_dir, 'rsq','r');
                 
@@ -1580,7 +1587,7 @@ classdef plots
             end
             fig.cleanup;
             if tosave
-                fig.save([plots.dirs_save4 'bmc_agreement_all_real.eps']);
+                fig.save([plots.dirs_save4 'bmc_agreement_all_real_group' num2str(subj_group_id) '.eps']);
             end
             
         end
@@ -1710,7 +1717,7 @@ classdef plots
                 fig.save([plots.dirs_save4 'bmc_agreement_fake_match.eps']);
             end
         end
-        function bmc_agreement_summary_real(tosave)
+        function bmc_agreement_summary_real(subj_group_id,tosave)
             
             if ~exist('tosave','var')
                 tosave = 0;
@@ -1722,7 +1729,7 @@ classdef plots
             rsqMat = zeros(size(idx_all));
             for ii = 1:length(idx_all)
                 dirname = compute.model_names{idx_all(ii)};
-                load(['similarity/' dirname '_rsq_real_opt.mat'])
+                load(['similarity/' dirname '_rsq_real_opt_group' num2str(subj_group_id) '.mat'])
                 rsqMat(ii) = r;
             end
             
@@ -1740,7 +1747,7 @@ classdef plots
             fig.cleanup
             
             if tosave
-                fig.save([plots.dirs_save4 'gmi_real.eps'])
+                fig.save([plots.dirs_save4 'gmi_real_group_' num2str(subj_group_id) '.eps'])
             end
 
             
@@ -2265,7 +2272,7 @@ classdef plots
                 lower = -800;
             end
                 
-            fig = Figure(700,'size',[100,60]); hold on
+            fig = Figure(700,'size',[10*length(subj_idx)+10,60]); hold on
             chance = log(0.5)*nTrials;
             pred_prob = zeros(1,length(subj_idx));
             opt_prob = zeros(1,length(subj_idx));
