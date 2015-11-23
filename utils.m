@@ -437,6 +437,23 @@ classdef utils
 
         end
         
+        function deviation_chi2_test(subj_idx,model_idx)
+            % chi2_test for deviations
+            % 11-22-2015 SS
+            for ii = 1:length(subj_idx)
+                for jj = 1:length(model_idx)
+                    dirname = compute.model_names{jj};
+                    subjid = compute.subjids{ii};
+                    load([compute.dirs dirname '/fit_results_2d2/' subjid]);
+                    p_right(p_right==0) = 0.0001;
+                    p_right(p_right==1) = 1-0.0001;
+                    D_vec = cntVec.*(p_right.*log(p_right./prediction)+(1-p_right).*log((1-p_right)./(1-prediction)));
+                    D = sum(D_vec(:));
+                    p = 1-chi2cdf(D,80)
+                end
+            end
+        end
+        
         function copy_files(model_idx)
             % copy tables from fake_data folders to main folder
             % 15-07-07 SS
