@@ -763,25 +763,9 @@ classdef compute
             for kk = subj_idx
                 subjid = compute.subjids{kk};
                 [stimuli,response] = utils.readdata(subjid,half);
-                target_stimuli = stimuli(:,1);
-                dist_stimuli = stimuli(:,2);
+                
                 load('bins_new');
-                target_stimuli_right = target_stimuli(response==1);
-                dist_stimuli_right = dist_stimuli(response==1);
-                idx1 = interp1(bins,1:length(bins),target_stimuli, 'nearest','extrap');
-                idx2 = interp1(bins,1:length(bins),dist_stimuli, 'nearest','extrap');
-                idx1_right = interp1(bins,1:length(bins),target_stimuli_right, 'nearest','extrap');
-                idx2_right = interp1(bins,1:length(bins),dist_stimuli_right, 'nearest','extrap');
-                cnt_r = zeros(length(bins), length(bins));
-                cnt = zeros(length(bins), length(bins));
-                for ii = 1:length(bins)
-                    for jj = 1:length(bins)
-                        cnt(ii,jj) = length(response(idx1==ii & idx2==jj));
-                        temp = target_stimuli(idx1_right==ii & idx2_right==jj);
-                        cnt_r(ii,jj) = length(temp);
-                    end
-                end
-                p_right = cnt_r./cnt;
+                [cnt,cnt_r,p_right] = utils.compute_cnts(stimuli,response,bins);
                
                 if ~exist([compute.dirs 'data_bin_' num2str(half)],'dir')
                     mkdir([compute.dirs 'data_bin_' num2str(half)])
@@ -1674,16 +1658,16 @@ classdef compute
                     predMat2 = squeeze(sum(squeeze(sum(predMat))));
                     [~,I] = max(predMat2(:));
                     [idx1,idx2] = ind2sub([length(compute.lambda_vec),length(compute.guess_vec)],I);
+                    lambda_hat = compute.lambda_vec(idx1);
+                    guess_hat = compute.lambda_vec(idx2);
                     CPG_prediction_hat = CPG_prediction_mean(:,:,idx1,idx2);
                         
                     if cross == 1 % with cross validation, recompute mle with second half of data and best pars got from the first half
                         load([compute.dirs '/data_bin_2/' subjid '.mat'])
-                        cntMat = repmat(cnt, [1,1,length(compute.lambda_vec),length(compute.guess_vec)]);
-                        cnt_rMat = repmat(cnt_r, [1,1,length(compute.lambda_vec),length(compute.guess_vec)]);
-                        cnt_lMat = cntMat - cnt_rMat;
-                        predMat = log(CPG_prediction_mean).*cnt_rMat + log(1-CPG_prediction_mean).*cnt_lMat;
+                        cnt_l = cnt - cnt_r;
+                        mleMat = log(CPG_prediction_hat).*cnt_r + log(1-CPG_prediction_hat).*cnt_l;
                     end
-                    mleMat = squeeze(predMat(:,:,idx1,idx2));
+                    
                     mle_mean = sum(mleMat(:));    
                     varMat = (cnt_r+1).*(cnt-cnt_r+1)./(cnt+2).^2./(cnt+3);
                     mle_varMat = cnt.^2.*(log(CPG_prediction_hat)-log(1-CPG_prediction_hat)).^2.*varMat ;
@@ -1704,7 +1688,7 @@ classdef compute
                     if ~exist([compute.dirs dirname save_dir], 'dir');
                         mkdir([compute.dirs dirname save_dir]);
                     end
-                    save([compute.dirs dirname save_dir '/' subjid], 'mleMat','mle_mean','mle_var','mle_range','mle_err','p','dkl');
+                    save([compute.dirs dirname save_dir '/' subjid], 'mleMat','mle_mean','mle_var','mle_range','mle_err','p','dkl','CPG_prediction_hat','lambda_hat','guess_hat');
                 end
             end
             
@@ -2128,46 +2112,12 @@ classdef compute
                 subjid = compute.subjids{mm};
                 
                 [stimuli,response] = utils.readdata(subjid,half);
-                target_stimuli = stimuli(:,1);
-                dist_stimuli = stimuli(:,2);
-                     
-                target_stimuli_right = target_stimuli(response==1);
-                dist_stimuli_right = dist_stimuli(response==1);
-                gamma = 0.577215;
-                
+                                  
                 for nn = nBins
                     bins = utils.generate_bins(nn);
-                    idx1 = interp1(bins,1:length(bins),target_stimuli, 'nearest','extrap');
-                    idx2 = interp1(bins,1:length(bins),dist_stimuli, 'nearest','extrap');
-                    idx1_right = interp1(bins,1:length(bins),target_stimuli_right, 'nearest','extrap');
-                    idx2_right = interp1(bins,1:length(bins),dist_stimuli_right, 'nearest','extrap');
-                    cnt_r = zeros(length(bins), length(bins));
-                    cnt = zeros(length(bins), length(bins));
-                    entropyMat = zeros(length(bins), length(bins));
-                    for ii = 1:length(bins)
-                        for jj = 1:length(bins)
-                            cnt(ii,jj) = length(response(idx1==ii & idx2==jj));
-                            temp = target_stimuli(idx1_right==ii & idx2_right==jj);
-                            cnt_r(ii,jj) = length(temp);
-                            if cnt_r(ii,jj) == 0 || cnt_r(ii,jj) == cnt(ii,jj)
-                                entropyMat(ii,jj) = 0;
-                            end
-                            G_N = -gamma - log(2) + sum(2./(2*(1:floor(cnt(ii,jj)/2))-1));
-                            if cnt_r(ii,jj)==1
-                                G_n1 = -gamma - log(2);
-                            else
-                                G_n1 = -gamma - log(2) + sum(2./(2*(1:floor(cnt_r(ii,jj)/2))-1));
-                            end
-                            if cnt_r(ii,jj)==cnt(ii,jj)-1
-                                G_n2 = -gamma - log(2);
-                            else
-                                G_n2 = -gamma - log(2) + sum(2./(2*(1:floor((cnt(ii,jj)-cnt_r(ii,jj))/2))-1));
-                            end
-                            entropyMat(ii,jj) = G_N - (cnt_r(ii,jj)*G_n1+(cnt(ii,jj)-cnt_r(ii,jj))*G_n2)/cnt(ii,jj);
-                        end
-                    end
-                    %% calculate the real probability of reporting right
-                    entropyvalue = -sum(entropyMat(:).*cnt(:));
+                    [cnt,cnt_r] = utils.compute_cnts(stimuli,response,bins);
+
+                    [entropyvalue,entropyMat] = utils.compute_G_entropy(cnt,cnt_r);
                     save_dir = ['real_data_results/entropy_est_' num2str(half) '/'];
                     if ~exist(save_dir,'dir')
                         mkdir(save_dir)
@@ -2177,5 +2127,31 @@ classdef compute
                 
              end
         end
+        function calculate_Dkl_err_bootstrap(subj_idx,model_idx)
+            % bootstrapping method to get the estimation error for KL
+            % divergence, now only works for the cross-validated data
+            nRep = 10000;
+            for ii = 1:length(subj_idx)
+                subjid = compute.subjids{subj_idx(ii)};
+                load([compute.dirs 'data_bin_2/' subjid '.mat'],'p_right','cnt_r','cnt')
+                for jj = 1:length(model_idx)
+                    dirname = compute.model_names{model_idx(jj)};
+                    load([compute.dirs dirname '/mle_bin_grid_cross/' subjid],'CPG_prediction_hat');
+                    dkl = zeros(1,nRep);
+                    for iRep = 1:nRep
+                        
+                        cnt_r_temp = binornd(cnt, p_right);
+                        mle = utils.compute_cross_entropy(cnt,cnt_r_temp,CPG_prediction_hat);
+                        entropy = utils.compute_G_entropy(cnt,cnt_r_temp);
+                        dkl(iRep) = entropy - mle;
+                    end
+                    figure; hist(dkl);
+                    pvalue = sum(dkl<0)/nRep
+                    dkl_ci_95 = [prctile(dkl,2.5),prctile(dkl,97.5)]
+                    save(['real_data_results/entropy_est_2/' subjid '_9_bootstrap'],'pvalue','dkl_ci_95');
+                end
+            end
+        end
+        
     end
 end

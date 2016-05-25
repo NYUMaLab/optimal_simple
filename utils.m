@@ -261,6 +261,29 @@ classdef utils
 %             save('bins_new', 'bins');
         end
         
+        function [cnt, cnt_r, p_right] = compute_cnts(stimuli, response, bins)
+            % count the number of trials and right-reporting trials in each bin
+            % 2015-11-23 SS
+            target_stimuli = stimuli(:,1);
+            dist_stimuli = stimuli(:,2);
+            target_stimuli_right = target_stimuli(response==1);
+            dist_stimuli_right = dist_stimuli(response==1);
+            idx1 = interp1(bins,1:length(bins),target_stimuli, 'nearest','extrap');
+            idx2 = interp1(bins,1:length(bins),dist_stimuli, 'nearest','extrap');
+            idx1_right = interp1(bins,1:length(bins),target_stimuli_right, 'nearest','extrap');
+            idx2_right = interp1(bins,1:length(bins),dist_stimuli_right, 'nearest','extrap');
+            cnt_r = zeros(length(bins), length(bins));
+            cnt = zeros(length(bins), length(bins));
+            for ii = 1:length(bins)
+                for jj = 1:length(bins)
+                    cnt(ii,jj) = length(response(idx1==ii & idx2==jj));
+                    temp = target_stimuli(idx1_right==ii & idx2_right==jj);
+                    cnt_r(ii,jj) = length(temp);
+                end
+            end
+            p_right = cnt_r./cnt;
+        end
+        
         function check_decision_rule(x, sigma, nSteps)
             if size(x) ~= [1,4]
                 error('Input orietations are not valid');
@@ -452,6 +475,42 @@ classdef utils
                     p = 1-chi2cdf(D,80)
                 end
             end
+        end
+        
+        function [entropyvalue,entropyMat] = compute_G_entropy(cnt, cnt_r)
+            % compute Grassberger entropy
+            % 15-11-23 SS
+            gamma = 0.577215;  
+            entropyMat = zeros(size(cnt));
+            for ii = 1:size(cnt,1)
+                for jj = 1:size(cnt,2)
+                    
+                    if cnt_r(ii,jj) == 0 || cnt_r(ii,jj) == cnt(ii,jj)
+                        entropyMat(ii,jj) = 0;
+                        continue
+                    end
+                    G_N = -gamma - log(2) + sum(2./(2*(1:floor(cnt(ii,jj)/2))-1));
+                    if cnt_r(ii,jj)==1
+                        G_n1 = -gamma - log(2);
+                    else
+                        G_n1 = -gamma - log(2) + sum(2./(2*(1:floor(cnt_r(ii,jj)/2))-1));
+                    end
+                    if cnt_r(ii,jj)==cnt(ii,jj)-1
+                        G_n2 = -gamma - log(2);
+                    else
+                        G_n2 = -gamma - log(2) + sum(2./(2*(1:floor((cnt(ii,jj)-cnt_r(ii,jj))/2))-1));
+                    end
+                    entropyMat(ii,jj) = G_N - (cnt_r(ii,jj)*G_n1+(cnt(ii,jj)-cnt_r(ii,jj))*G_n2)/cnt(ii,jj);
+                end
+            end
+            entropyvalue = -sum(entropyMat(:).*cnt(:));
+        end
+        
+        function [mle,mleMat] = compute_cross_entropy(cnt,cnt_r,prediction_hat)
+            % compute cross entropy by computing the mle
+            cnt_l = cnt - cnt_r;
+            mleMat = log(prediction_hat).*cnt_r + log(1-prediction_hat).*cnt_l;
+            mle = sum(mleMat(:));
         end
         
         function copy_files(model_idx)

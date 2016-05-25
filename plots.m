@@ -1070,7 +1070,9 @@ classdef plots
                 for ii = 1:length(bins)
                     bins_names{ii} = sprintf('%10.1f',bins(ii));
                 end
-                imagesc(1:length(bins_plot), wrev(1:length(bins_plot)), p_right'); caxis([0,1]); 
+                p_rightMat = flipud(p_right');
+                imagesc(1:length(bins_plot), wrev(1:length(bins_plot)), p_rightMat); caxis([0,1]);
+                save([subjid '_p_right.mat'], 'p_rightMat');
                 set(gca, 'XTick', 1:length(bins_plot)); set(gca, 'YTick',1:length(bins_plot));
                 set(gca, 'XTickLabel', 1:length(bins_plot)); set(gca, 'YTickLabel', wrev(1:length(bins_plot)));
     %             xlabel('Target orientation/degs'); ylabel('Distractor orientation/degs');
@@ -1738,9 +1740,12 @@ classdef plots
             
             p = ranksum(similar_rsq, non_similar_rsq)
             fig = Figure(200,'size',[50,40]); hold on
+            
+            plot([0.85,1.15],[similar_rsq(1),similar_rsq(1)],'r');
             plot(1,similar_rsq(2:end),'ko');
-            plot(1,similar_rsq(1),'ro');
-            plot(2,non_similar_rsq,'o','Color',[0.4,0.6,1]);
+            for ii = 1:length(non_similar_rsq)
+                plot([1.9,2.1],[non_similar_rsq(ii), non_similar_rsq(ii)], 'k');
+            end
             set(gca, 'XTick', [1,2]);
             set(gca, 'XTickLabel',{'similar', 'dissimilar'})
             xlim([0,3])
@@ -1773,7 +1778,9 @@ classdef plots
             p = ranksum(similar_rsq, non_similar_rsq);
             fig = Figure(200,'size',[50,40]); hold on
             plot(1,similar_rsq,'ko');
-            plot(2,non_similar_rsq,'ko');
+            for ii = 1:length(non_similar_rsq)
+                plot([1.9,2.1],[non_similar_rsq(ii),non_similar_rsq(ii)],'k');
+            end
             set(gca, 'XTick', [1,2]);
             set(gca, 'XTickLabel',{'similar', 'dissimilar'})
             xlim([0,3])
@@ -1806,7 +1813,9 @@ classdef plots
             non_similar_rsq_fake = rsqMat2(non_similar_idx);
             p = signrank(non_similar_rsq_real, non_similar_rsq_fake);
             fig = Figure(200,'size',[150,40]); hold on
-            plot(1:length(non_similar_rsq_real), non_similar_rsq_real,'o','Color',[0.4,0.5,1])
+            for ii = 1:length(non_similar_rsq_real)
+                plot([ii-0.15,ii+.15], [non_similar_rsq_real(ii),non_similar_rsq_real(ii)],'k');
+            end
             plot(1:length(non_similar_rsq_fake), non_similar_rsq_fake,'ko');
             set(gca, 'xTick',1:length(non_similar_rsq_real))
             set(gca, 'xTickLabel',models)
@@ -2283,7 +2292,7 @@ classdef plots
             mle_table = zeros(length(subj_idx),length(model_idx));
             p_table = zeros(length(subj_idx),length(model_idx));
             for ii = 1:length(subj_idx)
-                subjid = compute.subjids{ii};
+                subjid = compute.subjids{subj_idx(ii)};
                 for jj = 1:length(model_idx)
                     dirname = compute.model_names{model_idx(jj)};
                     load([compute.dirs dirname mle_dir subjid])
@@ -2299,10 +2308,10 @@ classdef plots
                         exp(mle_range/nTrials)
                     end
                 end
-                plot([ii-0.2,ii+0.2],[lml(ii),lml(ii)],'color','b','linewidth',0.5)
+                plot([ii-0.3,ii+0.3],[lml(ii),lml(ii)],'b:','linewidth',0.5)
                 
                 load(['real_data_results/' entropy_dir subjid '_9.mat'])
-                plot([ii-0.2,ii+0.2],[entropyvalue,entropyvalue],'g','linewidth',0.5)
+                plot([ii-0.3,ii+0.3],[entropyvalue,entropyvalue],'g--','linewidth',0.5)
                 
                 pred_prob(ii) = exp(entropyvalue/nTrials);
                 entropy_table(ii) = entropyvalue;
@@ -2312,7 +2321,7 @@ classdef plots
             errorbar(1:length(subj_idx), lml, err, 'b','LineStyle','None')
             ylim([lower,0])
             set(gca, 'xtick', 1:length(subj_idx),'XAxisLocation','top')
-            plot(0.8:0.1:length(subj_idx)+0.2,chance*ones(1,length(0.8:0.1:length(subj_idx)+0.2)),'k-.','linewidth',0.5)
+            plot(0.8:0.1:length(subj_idx)+0.2,chance*ones(1,length(0.8:0.1:length(subj_idx)+0.2)),'k.','linewidth',0.5)
             
             xlabel('Subject id'); ylabel('Negative entropy or LML')
             mean(pred_prob)
@@ -2325,9 +2334,9 @@ classdef plots
             pMat = p_table;
             p_table(length(subj_idx)+1,:) = mean(pMat);
             p_table(length(subj_idx)+2,:) = std(pMat)/sqrt(length(subj_idx));
-            T = array2table(roundsd(p_table,2)', 'RowNames', plots.model_names(model_idx), 'VariableNames', [compute.subjids(subj_idx),'mean','sem'])
-
-            writetable(T,'p_values.csv')
+%             T = array2table(round(p_table,2)', 'RowNames', plots.model_names(model_idx), 'VariableNames', [compute.subjids(subj_idx),'mean','sem'])
+% 
+%             writetable(T,'p_values.csv')
             pVec = zeros(1,length(model_idx));
             for ii = 1:length(model_idx)
                 pVec(ii) = signrank(mle_table(:,ii),entropy_table,'tail','left');
@@ -2340,6 +2349,32 @@ classdef plots
             set(gca, 'xTick',1:length(model_idx))
             set(gca, 'xTickLabel',models)
             fig2.cleanup
+        end
+        function entropy_sigma(subj_idx)
+            % scatter plot of estimated entropy v.s. sigma across subjects
+            est_neg_entropy = zeros(1,length(subj_idx));
+            est_sigma = zeros(1,length(subj_idx));
+            est_guess = zeros(1,length(subj_idx));
+            for ii = 1:length(subj_idx)
+                subjid = compute.subjids{subj_idx(ii)};
+                dirname = 'opt';
+                load([compute.dirs dirname '/mle_bin_grid_cross/' subjid '.mat'],'lambda_hat','guess_hat');
+                load(['real_data_results/entropy_est_2/' subjid '_9.mat'],'entropyvalue');
+                est_sigma(ii) = 1/sqrt(lambda_hat);
+                est_neg_entropy(ii) = entropyvalue;
+                est_guess(ii) = guess_hat;
+                
+            end
+            fig = Figure(130,'size',[100,40]);
+            subplot 121
+            scatter(est_sigma, est_neg_entropy, 'ko')
+            xlabel('estimated\sigma')
+            ylabel('estimated negative entropy')
+            subplot 122
+            scatter(est_guess, est_neg_entropy, 'ko')
+            xlabel('estimated lapse rate')
+            fig.cleanup
+            fig.save('entropy_sigma.eps')
         end
     end
 end
