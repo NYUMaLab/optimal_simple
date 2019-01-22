@@ -1,5 +1,5 @@
-real_data_results/
-fake_data_results/
+real_data_results/*
+fake_data_results/*
 *.eps
 *.mat
 *.xls

@@ -396,7 +396,7 @@ classdef plots
                 lower_pred   = prediction - err_pred;
 
                 % fig = Figure(101,'size',[25,22]);               
-                fig = Figure(101,'size',[35,28]); 
+                fig = Figure(104,'size',[35,28]); 
                
                 colorvec = get(gca, 'ColorOrder');
                 colorvec = min(colorvec+.65,1);
@@ -517,8 +517,7 @@ classdef plots
                 lower_pred   = prediction - err_pred;
 
                                 
-%                 fig = Figure(101,'size',[25,22]);
-                fig = Figure(101,'size',[35,28]);
+                fig = Figure(106,'size',[35,28]);
                 colorvec = get(gca, 'ColorOrder');
                 colorvec = min(colorvec+.65,1);
                 for jj = 1:length(bins_target)
@@ -687,7 +686,7 @@ classdef plots
                 p_right = squeeze(mean(p_rightMat));
                 prediction = squeeze(mean(predictionMat));
                
-                fig=Figure(180,'size',[35,25]); 
+                fig=Figure(102,'size',[45,35]); 
                
 %                 a  = subplot(1,2,1);
                 bins_plot = -4:4;
@@ -956,8 +955,8 @@ classdef plots
             box on; 
        
         end
-        function psymetric_curve_1d_data
-            nSubjs = length(compute.subjids);
+        function psymetric_curve_1d_data(subj_idx)
+            nSubjs = length(subj_idx);
             
             dirname = compute.model_names{1};
             load([compute.dirs dirname '/fit_results_1d/' compute.subjids{1}]);
@@ -965,7 +964,7 @@ classdef plots
             p_rightMat = zeros(nSubjs, length(bins_target), length(bins_dist));
             
             for ii = 1:nSubjs
-                subjid = compute.subjids{ii};
+                subjid = compute.subjids{subj_idx(ii)};
                 load([compute.dirs dirname '/fit_results_1d/' subjid]);
                 p_rightMat(ii,:,:) = p_right;
             end
@@ -976,7 +975,7 @@ classdef plots
             p_right = p_right';
             err_data = squeeze(std(p_rightMat)/sqrt(nSubjs));
             
-            fig = Figure(101,'size',[35,25]);
+            fig = Figure(103,'size',[35,25]);
 
             plot(bins_target, p_right); hold on;
                         
@@ -990,8 +989,8 @@ classdef plots
             fig.cleanup; fig.save([plots.dirs_save2 '1d_data.eps']);
             
         end
-        function psymetric_curve_1d_dist_data
-            nSubjs = length(compute.subjids);
+        function psymetric_curve_1d_dist_data(subj_idx)
+            nSubjs = length(subj_idx);
             
             dirname = compute.model_names{1};
             load([compute.dirs dirname '/fit_results_1d_dist/' compute.subjids{1}]);
@@ -999,7 +998,7 @@ classdef plots
             p_rightMat = zeros(nSubjs, length(bins_target), length(bins_dist));
             
             for ii = 1:nSubjs
-                subjid = compute.subjids{ii};
+                subjid = compute.subjids{subj_idx(ii)};
                 load([compute.dirs dirname '/fit_results_1d_dist/' subjid]);
                 p_rightMat(ii,:,:) = p_right;
             end
@@ -1010,7 +1009,7 @@ classdef plots
             p_right = p_right';
             err_data = squeeze(std(p_rightMat)/sqrt(nSubjs));
             
-            fig = Figure(101,'size',[35,25]);
+            fig = Figure(105,'size',[35,28]);
            
             plot(bins_dist,p_right); hold on;
                         
@@ -1024,7 +1023,7 @@ classdef plots
             
             
         end
-        function psymetric_curve_2d_all_data(subj_idx)
+        function psymetric_curve_2d2_data(subj_idx)
             nSubjs = length(subj_idx);
             subj_ids = compute.subjids(subj_idx);
             dirname = compute.model_names{1};
@@ -1039,7 +1038,7 @@ classdef plots
             
             p_right = squeeze(mean(p_rightMat));
            
-            fig = Figure(101,'size',[35,25]); 
+            fig = Figure(101,'size',[45,35]); 
             
 
             bins_plot = -4:4;

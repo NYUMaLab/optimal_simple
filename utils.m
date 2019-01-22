@@ -1,7 +1,7 @@
 classdef utils
     
     methods(Static)
-        function [stimulus, response, performance] = readdata(subjid,half)
+        function [stimulus, response, performance] = readdata(subjid, half)
             % input argument half specifies which half of the data should
             % be returned, 0 means returning the whole data set, 1 means
             % returning the half with odd indices, 2 means returning the half
@@ -14,13 +14,19 @@ classdef utils
                 error('Input of half is not valid, please input 0,1,2.')
             end
             % get list of filenames
-            files = dir(['output/' subjid '*.mat']);
+            if ismember(subjid, {'MBC','MG','RC','WYZ','XLM','YC','YL','YMH','YZ'})
+                datapath = 'data/Experiment 1/';
+            else
+                datapath = 'data/Experiment 2/';
+            end
+            files = dir([datapath subjid '*.mat']);
+            
             % read every file
             stimulus = [];
             response = [];
             performance = [];
             for ii=1:length(files)
-                load(['output/' files(ii).name]);
+                load([datapath files(ii).name]);
                 stimulus = [stimulus; data(:,1:2)];
                 response = [response; data(:,3)];
                 performance = [performance; data(:,4)];

@@ -779,7 +779,7 @@ classdef compute
             % 15-07-08 SS
             [flex_s, ~, ~, common_dir,subj_ids] = utils.parse_inputs(subj_idx, varargin);
             
-            for ii = 1:length(subj_ids);
+            for ii = 1:length(subj_ids)
                 for jj = model_idx
                     subjid = subj_ids{ii};
                     dirname = compute.model_names{jj};
@@ -892,7 +892,7 @@ classdef compute
                     %% load data
                     load([common_dir dirname '/fit_pars/' subjid]);
                     
-                    if strcmp(common_dir, 'real_data_results/')
+                    if strcmp(common_dir, 'real_data_results/fix_s/')
                         [stimuli,~,~] = utils.readdata(subjid);
                     else
                         load('fake_data_stimuli','stimuli_fake');
@@ -1111,7 +1111,7 @@ classdef compute
                     dist_stimuli = stimuli(:,2);
                     
                     % load bins
-                    load('bins_new');
+                    load('bins_quantile');
                     
                     %% calculate the predictions of the fitted pars
                     prediction = zeros(length(bins), length(bins));
@@ -1158,7 +1158,7 @@ classdef compute
                     dist_stimuli = stimuli(:,2);
                     
                     % load bins
-                    load('bins_new');
+                    load('bins_quantile');
                     
 
                     %% calculate the predictions of the fitted pars
